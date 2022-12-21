@@ -8,7 +8,7 @@ import asyncio
 import re
 
 # To check if its a valid YouTube URL (captures Playlist ID in Group 1)
-REGEX_VALID_YT_URL = re.compile(r'^(?:https:\/\/)?(?:(?:m|www)\.)?youtu(?:be\.(?:[a-z]{2,3}\.?)+|\.be)\/(?:(?:watch|playlist)\?(?:.*?&)?(?:list=([\w\d_-]+))?|(?:shorts|channel|user)\/|@[a-zA-Z\d]+)')
+REGEX_VALID_YT_URL = re.compile(r'^(?:https:\/\/)?(?:(?:m|www)\.)?youtu(?:be\.(?:[a-z]{2,3}\.?)+|\.be)\/(?:(?:watch|playlist)\?(?:.*?&)?(?:list=([\w\d-]+))?|(?:shorts|channel|user)\/|@[a-zA-Z\d]+)')
 
 # Regex to obtain Channel ID from the meta tag in the /watch page
 META_TAG_CHANNEL_ID_REGEX = re.compile(r'(?<=\<meta itemprop=\"channelId\" content=\")[^\"]+')
