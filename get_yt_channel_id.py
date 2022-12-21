@@ -1,9 +1,9 @@
 # This Python code can get you the channel ID of anybody's YT channel
 # Just either from the url from one of their videos, their channel, playlists, etc.
 
-# requires httpx (for asychronous requests)
+# requires aiohttp (for Asychronous HTTP Requests)
 
-from httpx import AsyncClient
+from aiohttp import ClientSession
 import asyncio
 import re
 
@@ -23,7 +23,7 @@ PLAYLIST_OWNER_IN_PLAYLIST_PAGE_REGEX = re.compile(r'ownerText\":\{.*?text\":\"(
 PLAYLIST_OWNER_IN_WATCH_PAGE_REGEX = re.compile(r'ownerName\":\{\"simpleText\":\"([^\"]+)\".*?browseId\":\"([^\"]+)')
 
 def meta_and_link_tag_infos(html_content): # Obtains Channel name from link tag, and Channel ID from meta tag
-    return (LINK_TAG_CHANNEL_NAME_REGEX.findall(html_content)[0], META_TAG_CHANNEL_ID_REGEX.findall(html_content)[0])
+    return LINK_TAG_CHANNEL_NAME_REGEX.findall(html_content)[0], META_TAG_CHANNEL_ID_REGEX.findall(html_content)[0]
 
 async def main(url):
     valid_url = REGEX_VALID_YT_URL.match(url)
@@ -31,24 +31,25 @@ async def main(url):
         raise TypeError('Youtube URL not found')
 
     playlistID = valid_url.group(1) # Contains Playlist ID
-    async with AsyncClient(follow_redirects=True) as client:
-        req = await client.get(url)
-
-    html_content = req.content.decode()
+    async with ClientSession() as session:
+        async with session.get(url) as response:
+            html_content = await response.text() # Contains the Page Content
 
     if playlistID: # If the URL has a Playlist ID
         if playlistID == 'LL': # Liked Videos Playlist
             raise ValueError('This URL takes you to your Liked Videos Playlist')
         elif playlistID == 'WL': # Watch Later Playlist
             raise ValueError('This URL takes you to your Watch Later Playlist')
-
         else:
             if '/playlist?' in url: # To get Playlist Owner ID from the Playlist Page
                 channelName, channelId = PLAYLIST_OWNER_IN_PLAYLIST_PAGE_REGEX.findall(html_content)[0]
+                if '"contributorName":' in html_content:
+                    # To check if the Channel Name in hte Playlist is mentioned with prefix 'by '
+                    # (mentions the owner channel as a Contributor to the Playlist)
+                    channelName = channelName.removeprefix('by ')
 
             else: # To get both the owner IDs of the playlist and the ongoing video
                 print(f'Playlist detected: {playlistID}')
-
                 playlistOwnerName, playlistOwnerId = PLAYLIST_OWNER_IN_WATCH_PAGE_REGEX.findall(html_content)[0]
                 channelName, channelId = meta_and_link_tag_infos(html_content)
 
@@ -57,7 +58,7 @@ async def main(url):
     else: # If the URL does not have a Playlist ID
         channelName, channelId = meta_and_link_tag_infos(html_content)
 
-    return channelId # Channel ID is stored here
+    return channelName, channelId # Channel Name & ID are returned here
 
 def run(url):
     try:
